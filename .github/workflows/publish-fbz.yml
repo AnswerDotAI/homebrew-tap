@@ -25,20 +25,27 @@ jobs:
           REPOSITORY: ${{ github.repository }}
         run: |
           pr=$(jq -r 'if (.workflow_run.pull_requests | length) == 1 then .workflow_run.pull_requests[0].number else empty end' "$GITHUB_EVENT_PATH")
-          [[ "$pr" =~ ^[0-9]+$ ]]
+          if ! [[ "$pr" =~ ^[0-9]+$ ]]
+          then
+            echo "Not a single-PR workflow run; nothing to publish"
+            exit 0
+          fi
 
           read -r state author head_repo head_ref head_sha < <(
             gh api "repos/$REPOSITORY/pulls/$pr" --jq '[.state, .user.login, .head.repo.full_name, .head.ref, .head.sha] | @tsv'
           )
-          [[ "$state" == open ]]
-          [[ "$author" == "github-actions[bot]" ]]
-          [[ "$head_repo" == "$REPOSITORY" ]]
-          [[ "$head_ref" == bump-fbz-* ]]
-          [[ "$head_sha" =~ ^[0-9a-f]{40}$ ]]
+          if [[ "$state" != open || "$author" != "github-actions[bot]" || "$head_repo" != "$REPOSITORY" || "$head_ref" != bump-fbz-* || ! "$head_sha" =~ ^[0-9a-f]{40}$ ]]
+          then
+            echo "PR #$pr is not an eligible fbz autobump; nothing to publish"
+            exit 0
+          fi
 
           mapfile -t files < <(gh api --paginate "repos/$REPOSITORY/pulls/$pr/files" --jq '.[].filename')
-          [[ ${#files[@]} -eq 1 ]]
-          [[ "${files[0]}" == Formula/fbz.rb ]]
+          if [[ ${#files[@]} -ne 1 || "${files[0]}" != Formula/fbz.rb ]]
+          then
+            echo "PR #$pr does not exclusively update Formula/fbz.rb; nothing to publish"
+            exit 0
+          fi
 
           gh workflow run publish.yml --repo "$REPOSITORY" --ref main \
             -f pull_request="$pr" -f head_sha="$head_sha"
