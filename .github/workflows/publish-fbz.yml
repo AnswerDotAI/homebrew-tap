@@ -1,0 +1,44 @@
+name: publish fbz bump
+
+on:
+  workflow_run:
+    workflows: [brew test-bot]
+    types: [completed]
+
+permissions: {}
+
+defaults:
+  run:
+    shell: bash -euo pipefail {0}
+
+jobs:
+  publish:
+    if: github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write
+      pull-requests: read
+    steps:
+      - name: Validate fbz bump and publish its bottles
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPOSITORY: ${{ github.repository }}
+        run: |
+          pr=$(jq -r 'if (.workflow_run.pull_requests | length) == 1 then .workflow_run.pull_requests[0].number else empty end' "$GITHUB_EVENT_PATH")
+          [[ "$pr" =~ ^[0-9]+$ ]]
+
+          read -r state author head_repo head_ref head_sha < <(
+            gh api "repos/$REPOSITORY/pulls/$pr" --jq '[.state, .user.login, .head.repo.full_name, .head.ref, .head.sha] | @tsv'
+          )
+          [[ "$state" == open ]]
+          [[ "$author" == "github-actions[bot]" ]]
+          [[ "$head_repo" == "$REPOSITORY" ]]
+          [[ "$head_ref" == bump-fbz-* ]]
+          [[ "$head_sha" =~ ^[0-9a-f]{40}$ ]]
+
+          mapfile -t files < <(gh api --paginate "repos/$REPOSITORY/pulls/$pr/files" --jq '.[].filename')
+          [[ ${#files[@]} -eq 1 ]]
+          [[ "${files[0]}" == Formula/fbz.rb ]]
+
+          gh workflow run publish.yml --repo "$REPOSITORY" --ref main \
+            -f pull_request="$pr" -f head_sha="$head_sha"
