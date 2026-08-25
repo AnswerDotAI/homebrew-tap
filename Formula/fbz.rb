@@ -6,6 +6,12 @@ class Fbz < Formula
   license "Apache-2.0"
   head "https://github.com/AnswerDotAI/fbz.git", branch: "main"
 
+  bottle do
+    root_url "https://github.com/AnswerDotAI/homebrew-tap/releases/download/fbz-0.1.9"
+    sha256 cellar: :any_skip_relocation, arm64_tahoe:  "685881291709765d46a68d404e4d3dd65374615f62e40b6df9d47c6d4d94098b"
+    sha256 cellar: :any,                 x86_64_linux: "0b3ffe9ed81c7ac43914477724c8bc559fc0e1547be13bcfc2f9fd73aa96292c"
+  end
+
   depends_on "rust" => :build
 
   def install
