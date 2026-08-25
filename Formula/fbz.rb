@@ -1,8 +1,8 @@
 class Fbz < Formula
   desc "Fast parallel compression and decompression"
   homepage "https://github.com/AnswerDotAI/fbz"
-  url "https://static.crates.io/crates/fbz/fbz-0.1.9.crate"
-  sha256 "c2ad6dfdee1fb584e74abc13feceb5f0361c7d37a08b7c6b157c04d9b3499968"
+  url "https://static.crates.io/crates/fbz/fbz-0.1.10.crate"
+  sha256 "8af05470c0d99d72c8f0d0cf85c90f80fcb346f9f37c9044c299da6781ad5d44"
   license "Apache-2.0"
   head "https://github.com/AnswerDotAI/fbz.git", branch: "main"
 
