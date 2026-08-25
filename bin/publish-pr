@@ -1,0 +1,24 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+pr=${1:?Usage: bin/publish-pr PR_NUMBER}
+
+read -r state head_sha < <(gh pr view "$pr" --json state,headRefOid --jq '[.state, .headRefOid] | @tsv')
+if [[ $state != OPEN ]]; then
+  echo "PR #$pr is $state, not open" >&2
+  exit 1
+fi
+
+gh pr checks "$pr" --watch --fail-fast
+
+echo "Publishing bottles for PR #$pr at $head_sha"
+run_url=$(gh workflow run publish.yml --ref main -f pull_request="$pr" -f head_sha="$head_sha")
+run_id=${run_url##*/}
+if [[ ! $run_id =~ ^[0-9]+$ ]]; then
+  echo "Could not determine workflow run from: $run_url" >&2
+  exit 1
+fi
+
+gh run watch "$run_id" --exit-status
+git switch main
+git pull --ff-only
