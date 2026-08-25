@@ -7,9 +7,9 @@ class Fbz < Formula
   head "https://github.com/AnswerDotAI/fbz.git", branch: "main"
 
   bottle do
-    root_url "https://github.com/AnswerDotAI/homebrew-tap/releases/download/fbz-0.1.9"
-    sha256 cellar: :any_skip_relocation, arm64_tahoe:  "685881291709765d46a68d404e4d3dd65374615f62e40b6df9d47c6d4d94098b"
-    sha256 cellar: :any,                 x86_64_linux: "0b3ffe9ed81c7ac43914477724c8bc559fc0e1547be13bcfc2f9fd73aa96292c"
+    root_url "https://github.com/AnswerDotAI/homebrew-tap/releases/download/fbz-0.1.10"
+    sha256 cellar: :any_skip_relocation, arm64_tahoe:  "bb172df5405fd9b089f570c2eabaddbe78b60d43480abde327664c1a1d08119a"
+    sha256 cellar: :any,                 x86_64_linux: "c639e6c78f14108980af4286954258ef22aa0ac9a0fd7d0897ae7dc32af244b9"
   end
 
   depends_on "rust" => :build
