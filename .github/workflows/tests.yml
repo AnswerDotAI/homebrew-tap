@@ -58,3 +58,36 @@ jobs:
         with:
           name: bottles_${{ matrix.os }}
           path: '*.bottle.*'
+
+  publish-fbz:
+    if: github.event_name == 'pull_request'
+    needs: test-bot
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write
+      pull-requests: read
+    steps:
+      - name: Publish eligible fbz autobump bottles
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPOSITORY: ${{ github.repository }}
+        run: |
+          pr=$(jq -r '.pull_request.number' "$GITHUB_EVENT_PATH")
+          read -r state author head_repo head_ref head_sha < <(
+            gh api "repos/$REPOSITORY/pulls/$pr" --jq '[.state, .user.login, .head.repo.full_name, .head.ref, .head.sha] | @tsv'
+          )
+          if [[ "$state" != open || "$author" != "github-actions[bot]" || "$head_repo" != "$REPOSITORY" || "$head_ref" != bump-fbz-* || ! "$head_sha" =~ ^[0-9a-f]{40}$ ]]
+          then
+            echo "PR #$pr is not an eligible fbz autobump; nothing to publish"
+            exit 0
+          fi
+
+          mapfile -t files < <(gh api --paginate "repos/$REPOSITORY/pulls/$pr/files" --jq '.[].filename')
+          if [[ ${#files[@]} -ne 1 || "${files[0]}" != Formula/fbz.rb ]]
+          then
+            echo "PR #$pr does not exclusively update Formula/fbz.rb; nothing to publish"
+            exit 0
+          fi
+
+          gh workflow run publish.yml --repo "$REPOSITORY" --ref main \
+            -f pull_request="$pr" -f head_sha="$head_sha"
